@@ -1,0 +1,18 @@
+name: SWIR_HDR
+channels:
+  - conda-forge
+  - spectrocat
+  - defaults
+dependencies:
+  - ipykernel
+  - matplotlib
+  - notebook
+  - python=3.12.3
+  - scikit-learn
+  - scikit-image
+  - pandas
+  - numpy
+  - pathlib
+  - h5py
+  - tifffile
+  - spectrochempy=0.6.8=stable
