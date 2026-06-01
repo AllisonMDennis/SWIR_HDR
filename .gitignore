@@ -25,6 +25,7 @@ build/
 .idea/ # PyCharm
 .DS_Store
 .reference/
+.claude/
 explore_crf.ipynb
 verify_figures.ipynb
 data/step0_output/
