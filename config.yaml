@@ -1,0 +1,29 @@
+# SWIR_HDR pipeline configuration
+# All paths are relative to the repository root.
+
+# --- Calibration (Step 0) ---
+calibration:
+  dc_dir:             data/Images/DCcalibration
+  reflectance_dir:    data/Images/Smax_calibration
+  crf_data_dir:       data/Images/CRFrecovery/checkerboard_short
+  output_dir:         data/calibration
+  fit_method:         log_linear   # must be log_linear (sigmoid, Section 2.3 Eq. 2)
+  smoothing_lambda:   1000
+  weighting_function: debevec      # debevec | robertson | broadhat | vinegoni
+
+# --- Import and preprocessing (Step 1) ---
+import:
+  base_data_folder:  HDR_data
+  preprocessing_ops:
+    - clip
+    - denoise
+
+# --- HDR radiance (Step 2) ---
+radiance:
+  weighting_function: debevec      # debevec | robertson | broadhat | vinegoni
+  method: default                  # default | adaptive
+
+# --- Subject data ---
+subject:
+  directory:        data/Images/SWIRQD_images/PC_Female_1_2_63min
+  experiment_title: PC_Female_1_2_63min

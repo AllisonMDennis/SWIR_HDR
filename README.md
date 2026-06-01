@@ -1,44 +1,129 @@
 # SWIR_HDR
 
-This repository provides code that combines multiple SWIR image exposures into a single HDR radiance map.
-
+This repository provides code that combines multiple SWIR image exposures into a single
+high dynamic range (HDR) radiance map, as described in Patel *et al.*, *Journal of
+Biomedical Optics* (2026) — see [Citing](#citing).
 
 ## Installation
-To try out this code, you need to [install Anaconda](https://www.anaconda.com/download).
 
-Next, in a terminal or using VS Code, do:
+To run this code, you need to [install Anaconda](https://www.anaconda.com/download).
 
-```conda env create -f SWIR_HDR.yml```
-```conda activate SWIR_HDR```
+Then, in a terminal or in VS Code:
+
+```
+conda env create -f SWIR_HDR.yml
+conda activate SWIR_HDR
+```
+
+## Pipeline overview
+
+Processing happens in three stages, implemented in the `Step*` modules and driven by
+the two `example_*.py` entry points:
+
+- **`Step0_calibration.py`** — uses dark-count and reflectance images to build per-pixel
+  models of the exposure-time–dependent dark current (`Sd`, `b`), the saturation
+  threshold (`Smax`), and the camera response function (`crf`). The results are saved as
+  four NumPy arrays (`Sd.npy`, `b.npy`, `Smax.npy`, `crf.npy`) used by downstream steps.
+  Calibration only needs to be run once per detector/imager.
+- **`Step1_import.py`** — loads the subject H5 files, reads laser/filter/exposure metadata,
+  groups the exposure stacks, and applies preprocessing (clip to `Smax`, dark-current
+  subtraction).
+- **`Step2_radiance.py`** — fuses the preprocessed exposure stack into an HDR radiance map
+  using the camera response function and a weighting function, with an optional adaptive
+  per-pixel exposure-selection method (manuscript Section 2.6).
+
+## Configuration
+
+All pipeline parameters live in **`config.yaml`** at the repository root, loaded by
+**`config.py`** (`load_config()`), which resolves the relative data paths against the
+repo root. The file is grouped into sections:
+
+- `calibration` — input directories (`dc_dir`, `reflectance_dir`, `crf_data_dir`),
+  `output_dir` for the calibration arrays, the light-response `fit_method`,
+  `smoothing_lambda`, and the CRF `weighting_function`.
+- `import` — the `base_data_folder` where per-subject pipeline outputs are written and the
+  list of `preprocessing_ops` (`clip`, `denoise`).
+- `radiance` — the HDR `weighting_function` (`debevec | robertson | broadhat | vinegoni`)
+  and `method` (`default | adaptive`).
+- `subject` — the subject image `directory` and `experiment_title`.
+
+To use a different configuration, copy `config.yaml`, edit it, and pass it explicitly:
+
+```
+python example_calibration.py --config my_config.yaml
+python example_radiance.py     --config my_config.yaml
+```
 
 ## Usage
-There are 3 "Step\#_..py" files in this directory. Each file provides functionality to accomplish 3 typical steps of HDR processing. They are intended to be used as follows:
 
-`Step0_DCmodel.py` uses dark count and reflectance or fluorescence images to generate per-pixel models of the exposure time-dependent dark current noise, saturation thresholds, and camera response function. The results of Step 0 are saved as 4 numpy (`file.npy`) arrays that are used in downstream processing steps. The functions in Step 0 only need to be performed once for each detector/imager.
+**1. Calibrate the detector (once):**
 
-In `Step1_import.py`, functionality is provided so that the h5 files are loaded and the metadata used to extract the relvant exposure times.
+```
+python example_calibration.py
+```
 
-In `Step2_radiance.py`, functionality is provided so that the organized data are processed using the dark current model for noise subtraction, the saturation limit to remove non-linear responses, and a weighting function and camera response functions applied for high dynamic range radiance map construction.
+This runs Step 0 and writes `Sd.npy`, `b.npy`, `Smax.npy`, and `crf.npy` to the
+configured `calibration.output_dir` (default `data/calibration`).
+
+**2. Import and fuse subject images:**
+
+```
+python example_radiance.py
+```
+
+This runs Steps 1–2 on the configured `subject`, writing the HDR radiance maps (NPY +
+linear/log TIFF) to `{subject.directory}/{import.base_data_folder}/final_data/`.
 
 ## Data
-The data folder has some example HDF5 (h5) files and associated images. The `DCcalibration` folder has dark current data at different exposure times. The `CRFrecovery` folder has data for calculating a Camera Response Function. The `Smax_calibration` folder has intensity data for calculating per-pixel saturation.
 
+Example HDF5 (`.h5`) inputs live under `data/Images/`:
 
-## CITING 
-Our preprint describing this approach is available on bioRxiv.
+- `DCcalibration/` — dark-current frames across exposure times (for `Sd`, `b`).
+- `Smax_calibration/` — reflectance intensity series (for the per-pixel saturation `Smax`).
+- `CRFrecovery/checkerboard_short/` — 6 short checkerboard exposures (0.01–0.32 s) used to
+  recover the camera response function.
+- `CRFrecovery/checkerboard_long/` — longer checkerboard exposures (0.25–8 s), used to
+  verify that the short-exposure CRF generalizes.
+- `ICG_images/` — ICG dilution-plate and mouse fluorescence series.
+- `SWIRQD_images/` — quantum-dot–labeled mouse exposure stacks.
 
-Amish Patel, Xingjian Zhong, Mallory Moffett, Yidan Sun, Allison M. Dennis, *High dynamic range shortwave infrared (SWIR) imaging of mice with an InGaAs camera* bioRxiv 2025.11.06.687088; doi: https://doi.org/10.1101/2025.11.06.687088
+Calibration outputs are written to `data/calibration/`. Per-subject pipeline outputs are
+written into an `HDR_data/` folder inside each subject directory (git-ignored).
 
+## Reproducing the manuscript figures
 
-Citation:
+`replicate_figures.py` regenerates the numerical data and plots for the manuscript's data
+figures, writing CSVs (for import into GraphPad Prism) and PNGs to `figure_outputs/`:
+
 ```
-@article {Patel2025.11.06.687088,
-	author = {Patel, Amish and Zhong, Xingjian and Moffett, Mallory and Sun, Yidan and Dennis, Allison M.},
-	title = {High dynamic range shortwave infrared (SWIR) imaging of mice with an InGaAs camera},
-	year = {2025},
-	doi = {10.1101/2025.11.06.687088},
-	URL = {https://www.biorxiv.org/content/early/2025/11/08/2025.11.06.687088},
-	eprint = {https://www.biorxiv.org/content/early/2025/11/08/2025.11.06.687088.full.pdf},
-	journal = {bioRxiv}
+python replicate_figures.py            # all figures
+python replicate_figures.py --figure 3 # one figure
+python replicate_figures.py --figure 4 # all of 4a-d / 4e-f / 4g
+```
+
+Valid `--figure` values are `3`, `4ad`, `4ef`, `4g`, `5`, `6`, and `4` (shorthand for all
+of Figure 4). Figures 1, 2, and 7 are schematics/spectra or require manually drawn ROIs
+and are not generated by this code. Calibration (`example_calibration.py`) must be run
+first so `data/calibration/crf.npy` exists.
+
+## Citing
+
+If you use this code, please cite:
+
+Amish Patel, Xingjian Zhong, Mallory Moffett, Yidan Sun, Allison M. Dennis,
+"High dynamic range shortwave infrared imaging of mice with an InGaAs camera,"
+*Journal of Biomedical Optics* **31**(5), 054704 (2026), doi:
+[10.1117/1.JBO.31.5.054704](https://doi.org/10.1117/1.JBO.31.5.054704).
+
+```
+@article{Patel2026_SWIR_HDR,
+    author  = {Patel, Amish and Zhong, Xingjian and Moffett, Mallory and Sun, Yidan and Dennis, Allison M.},
+    title   = {High dynamic range shortwave infrared imaging of mice with an InGaAs camera},
+    journal = {Journal of Biomedical Optics},
+    volume  = {31},
+    number  = {5},
+    pages   = {054704},
+    year    = {2026},
+    doi     = {10.1117/1.JBO.31.5.054704}
 }
 ```

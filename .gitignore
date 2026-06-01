@@ -23,3 +23,10 @@ build/
 .DS_Store # macOS
 .vscode/ # VS Code
 .idea/ # PyCharm
+.DS_Store
+.reference/
+explore_crf.ipynb
+verify_figures.ipynb
+data/step0_output/
+figure_outputs/
+data/Images/**/HDR_data/
