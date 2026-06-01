@@ -41,8 +41,8 @@ repo root. The file is grouped into sections:
 - `calibration` — input directories (`dc_dir`, `reflectance_dir`, `crf_data_dir`),
   `output_dir` for the calibration arrays, the light-response `fit_method`,
   `smoothing_lambda`, and the CRF `weighting_function`.
-- `import` — the `base_data_folder` where per-subject pipeline outputs are written and the
-  list of `preprocessing_ops` (`clip`, `denoise`).
+- `import` — the `output_dir` where the HDR pipeline writes its output (per experiment,
+  git-ignored) and the list of `preprocessing_ops` (`clip`, `denoise`).
 - `radiance` — the HDR `weighting_function` (`debevec | robertson | broadhat | vinegoni`)
   and `method` (`default | adaptive`).
 - `subject` — the subject image `directory` and `experiment_title`.
@@ -72,7 +72,8 @@ python example_radiance.py
 ```
 
 This runs Steps 1–2 on the configured `subject`, writing the HDR radiance maps (NPY +
-linear/log TIFF) to `{subject.directory}/{import.base_data_folder}/final_data/`.
+linear/log TIFF) to `{import.output_dir}/{subject.experiment_title}/final_data/`
+(default `output/<experiment_title>/final_data/`, git-ignored).
 
 ## Data
 
@@ -87,13 +88,17 @@ Example HDF5 (`.h5`) inputs live under `data/Images/`:
 - `ICG_images/` — ICG dilution-plate and mouse fluorescence series.
 - `SWIRQD_images/` — quantum-dot–labeled mouse exposure stacks.
 
-Calibration outputs are written to `data/calibration/`. Per-subject pipeline outputs are
-written into an `HDR_data/` folder inside each subject directory (git-ignored).
+Calibration outputs are written to `data/calibration/`. Generated pipeline output is kept
+out of the tracked `data/` tree: `example_radiance.py` writes to
+`output/<experiment_title>/` and `replicate_figures.py` writes to `figure_outputs/`. Both
+locations are git-ignored.
 
 ## Reproducing the manuscript figures
 
 `replicate_figures.py` regenerates the numerical data and plots for the manuscript's data
-figures, writing CSVs (for import into GraphPad Prism) and PNGs to `figure_outputs/`:
+figures. All generated output — CSVs (for import into GraphPad Prism), PNGs, and the
+intermediate Step 1/2 pipeline files (`<experiment>_HDR_data/`) — is written under
+`figure_outputs/`, which is git-ignored:
 
 ```
 python replicate_figures.py            # all figures
@@ -127,3 +132,8 @@ Amish Patel, Xingjian Zhong, Mallory Moffett, Yidan Sun, Allison M. Dennis,
     doi     = {10.1117/1.JBO.31.5.054704}
 }
 ```
+
+## Acknowledgements
+
+Anthropic's Claude (Claude Code) was used to help clean up and document this code for
+release.

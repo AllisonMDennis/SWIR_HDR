@@ -13,7 +13,7 @@ calibration:
 
 # --- Import and preprocessing (Step 1) ---
 import:
-  base_data_folder:  HDR_data
+  output_dir:        output          # git-ignored; HDR pipeline output is written to output/<experiment_title>/
   preprocessing_ops:
     - clip
     - denoise

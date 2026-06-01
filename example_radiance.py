@@ -50,9 +50,14 @@ def main():
     print("=" * 60)
     print("  SWIR_HDR — Steps 1-2: Import and HDR Radiance")
     print("=" * 60)
+    # HDR pipeline output goes to output/<experiment_title>/ (git-ignored),
+    # not into the subject's data directory.
+    base = os.path.join(imp["output_dir"], subj["experiment_title"])
+
     print(f"  subject dir    : {subj['directory']}")
     print(f"  experiment     : {subj['experiment_title']}")
     print(f"  calibration dir: {cal['output_dir']}")
+    print(f"  output dir     : {base}")
     print(f"  preprocessing  : {imp['preprocessing_ops']}")
     print(f"  weighting fn   : {rad['weighting_function']}")
     print(f"  method         : {rad['method']}")
@@ -77,7 +82,7 @@ def main():
     step1.process_and_save(
         directory        = subj["directory"],
         experiment_title = subj["experiment_title"],
-        base_data_folder = imp["base_data_folder"],
+        base_data_folder = base,
         operations       = imp["preprocessing_ops"],
         params           = params,
     )
@@ -90,14 +95,14 @@ def main():
     processed = step2.process_hdr_images(
         directory          = subj["directory"],
         experiment_title   = subj["experiment_title"],
-        base_data_folder   = imp["base_data_folder"],
+        base_data_folder   = base,
         coefficients_dict  = params,
         response_curve     = crf,
         weighting_function = weighting_fn,
         method             = rad["method"],
     )
 
-    final_dir = os.path.join(subj["directory"], imp["base_data_folder"], "final_data")
+    final_dir = os.path.join(base, "final_data")
     print(f"\nComplete — {len(processed)} radiance map(s) saved to {final_dir}")
     for item in processed:
         rm = item["radiance_map"]

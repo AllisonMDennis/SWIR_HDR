@@ -30,4 +30,5 @@ explore_crf.ipynb
 verify_figures.ipynb
 data/step0_output/
 figure_outputs/
+output/
 data/Images/**/HDR_data/
